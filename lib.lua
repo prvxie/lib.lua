@@ -2320,7 +2320,7 @@ local Library = {
                     Parent = Library.Holder.Instance, 
                     AnchorPoint = Vector2.new(0, 0.5), 
                     Position = UDim2.new(0, 10, 0.5, 0), 
-                    Size = UDim2.new(0, 34, 0, 22), 
+                    Size = UDim2.new(0, 55, 0, 22), 
                     ClipsDescendants = true, 
                     BorderSizePixel = 0, 
                     BackgroundColor3 = Library.Theme["Background"]
@@ -2350,12 +2350,30 @@ local Library = {
                     PaddingRight = UDim.new(0, 8), 
                     PaddingLeft = UDim.new(0, 8)
                 })
+
+                Library:Create("UIListLayout", {
+                    Parent = Items["KeybindList"].Instance,
+                    Padding = UDim.new(0, 4),
+                    SortOrder = Enum.SortOrder.LayoutOrder
+                })
+
+                Items["Header"] = Library:Create("TextLabel", {
+                    Parent = Items["KeybindList"].Instance, 
+                    FontFace = Library.Font, 
+                    TextSize = Library.FontSize, 
+                    TextColor3 = Library.Theme["Accent"], 
+                    Text = "keybinds:", 
+                    BackgroundTransparency = 1, 
+                    BorderSizePixel = 0, 
+                    Size = UDim2.new(1, 0, 0, 14), 
+                    TextYAlignment = Enum.TextYAlignment.Center, 
+                    TextXAlignment = Enum.TextXAlignment.Left
+                }):AddToTheme({TextColor3 = "Accent"})
         
                 Items["Content"] = Library:Create("Frame", {
                     Parent = Items["KeybindList"].Instance, 
                     BackgroundTransparency = 1, 
-                    Position = UDim2.new(0, 0, 0, 0), 
-                    Size = UDim2.new(0, 0, 0, 14), 
+                    Size = UDim2.new(1, 0, 0, 14), 
                     BorderSizePixel = 0
                 })
 
@@ -2374,7 +2392,7 @@ local Library = {
             end
         
             function KeybindList:UpdateSize()
-                local Width = 0
+                local Width = 55
                 local Y = 0
                 local Count = 0
         
@@ -2392,10 +2410,13 @@ local Library = {
                     end
                 end
         
-                local TargetHeight = Count > 0 and math.max(14, Y - 2) or 14
+                local TargetHeight = Count > 0 and math.max(14, Y - 2) or 0
+                Items["Content"].Instance.Visible = (Count > 0)
         
                 Items["Content"].Instance.Size = UDim2.new(0, Width, 0, TargetHeight)
-                Items["KeybindList"]:Tween({Size = UDim2.new(0, Width + 16, 0, TargetHeight + 8)}, KeybindTweenInfo)
+                
+                local FrameHeight = Count > 0 and (TargetHeight + 14 + 4 + 8) or 22
+                Items["KeybindList"]:Tween({Size = UDim2.new(0, Width + 16, 0, FrameHeight)}, KeybindTweenInfo)
 
                 local ActiveKeys = { }
 
@@ -3474,7 +3495,6 @@ local Library = {
                     Name = Data.Name or Data.name or Toggle.Name,
                     Flag = Data.Flag or Data.flag or (Data.Name or Data.name or Toggle.Name),
                     Default = Data.Default or Data.default or nil,
-                    Callback = Data.Callback or Data.callback or function() end,
                     Mode = Data.Mode or Data.mode or "Toggle",
 
                     Window = Toggle.Window,
@@ -3490,8 +3510,35 @@ local Library = {
                     Flag = Keybind.Flag,
                     Default = Keybind.Default,
                     Mode = Keybind.Mode,
-                    Callback = Keybind.Callback
+                    Callback = function(Toggled)
+                        Toggle:Set(Toggled)
+                        if Data.Callback then 
+                            Library:SafeCall(Data.Callback, Toggled)
+                        end
+                    end
                 })
+
+                local originalSet = Toggle.Set
+                Toggle.Set = function(self, val)
+                    originalSet(self, val)
+                    if NewKeybind.Toggled ~= val then
+                        NewKeybind.Toggled = val
+                        Flags[NewKeybind.Flag] = {
+                            Mode = NewKeybind.Mode,
+                            Key = NewKeybind.Key,
+                            Toggled = val
+                        }
+                        pcall(function()
+                            if Library.KeyList and Library.KeyList.Keys then
+                                for _, k in ipairs(Library.KeyList.Keys) do
+                                    if k.Object.Instance.Text:find(Keybind.Name) then
+                                        k:SetStatus(val)
+                                    end
+                                end
+                            end
+                        end)
+                    end
+                end
 
                 return NewKeybind
             end
