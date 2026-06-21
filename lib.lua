@@ -2439,7 +2439,7 @@ local Library = {
                     FontFace = Library.Font, 
                     TextSize = Library.FontSize, 
                     TextColor3 = Library.Theme["Text"], 
-                    Text = Name .. " - " .. Mode .. " [" .. Key .. "]", 
+                    Text = Name:lower() .. " - " .. Mode:lower() .. " " .. tostring(Key):lower(), 
                     BackgroundTransparency = 1, 
                     BorderSizePixel = 0, 
                     Size = UDim2.new(0, 0, 0, 14), 
@@ -2454,7 +2454,10 @@ local Library = {
         
                 local NewKey = {
                     Object = NewKeyText,
-                    Showing = false
+                    Showing = false,
+                    Name = Name,
+                    Mode = Mode,
+                    Key = Key
                 }
         
                 table.insert(KeybindList.Keys, NewKey)
@@ -2468,12 +2471,18 @@ local Library = {
                 end
         
                 function NewKey:Set(Name, Mode, Key)
-                    NewKey.Object.Instance.Text = Name .. " - " .. Mode .. " [" .. Key .. "]"
+                    NewKey.Name = Name
+                    NewKey.Mode = Mode
+                    NewKey.Key = Key
+                    NewKey.Object.Instance.Text = Name:lower() .. " - " .. Mode:lower() .. " " .. tostring(Key):lower()
 
                     KeybindList:UpdateSize()
                 end
         
                 function NewKey:SetStatus(Bool)
+                    if tostring(NewKey.Key):lower() == "none" then
+                        Bool = false
+                    end
                     Bool = Bool and CanShow
         
                     if NewKey.Showing == Bool then
