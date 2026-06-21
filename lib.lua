@@ -2204,6 +2204,26 @@ local Library = {
                     PaddingLeft = UDim.new(0, 8)
                 })
 
+                Items["Avatar"] = Library:Create("ImageLabel", {
+                    Parent = Items["TargetHUD"].Instance,
+                    Size = UDim2.new(0, 44, 0, 44),
+                    Position = UDim2.new(0, 0, 0, 0),
+                    BackgroundColor3 = Library.Theme["Inline"],
+                    BorderSizePixel = 0,
+                    Image = "rbxthumb://type=AvatarHeadShot&id=0&w=150&h=150"
+                }):AddToTheme({BackgroundColor3 = "Inline"})
+
+                Library:Create("UICorner", {
+                    Parent = Items["Avatar"].Instance,
+                    CornerRadius = UDim.new(0, 22)
+                })
+
+                Library:Create("UIStroke", {
+                    Parent = Items["Avatar"].Instance,
+                    Color = Library.Theme["Outline"],
+                    Thickness = 1
+                }):AddToTheme({Color = "Outline"})
+
                 Items["Name"] = Library:Create("TextLabel", {
                     Parent = Items["TargetHUD"].Instance,
                     FontFace = Library.Font,
@@ -2212,8 +2232,8 @@ local Library = {
                     Text = "No Target",
                     BackgroundTransparency = 1,
                     BorderSizePixel = 0,
-                    Size = UDim2.new(1, 0, 0, 14),
-                    Position = UDim2.new(0, 0, 0, 0),
+                    Size = UDim2.new(1, -52, 0, 14),
+                    Position = UDim2.new(0, 52, 0, 0),
                     TextXAlignment = Enum.TextXAlignment.Left
                 }):AddToTheme({TextColor3 = "Text"})
 
@@ -2225,15 +2245,15 @@ local Library = {
                     Text = "0 studs",
                     BackgroundTransparency = 1,
                     BorderSizePixel = 0,
-                    Size = UDim2.new(1, 0, 0, 14),
-                    Position = UDim2.new(0, 0, 0, 0),
+                    Size = UDim2.new(1, -52, 0, 14),
+                    Position = UDim2.new(0, 52, 0, 0),
                     TextXAlignment = Enum.TextXAlignment.Right
                 }):AddToTheme({TextColor3 = "Inactive Text"})
 
                 Items["HealthBarBg"] = Library:Create("Frame", {
                     Parent = Items["TargetHUD"].Instance,
-                    Size = UDim2.new(1, 0, 0, 6),
-                    Position = UDim2.new(0, 0, 0, 22),
+                    Size = UDim2.new(1, -52, 0, 6),
+                    Position = UDim2.new(0, 52, 0, 20),
                     BorderSizePixel = 0,
                     BackgroundColor3 = Library.Theme["Inline"]
                 }):AddToTheme({BackgroundColor3 = "Inline"})
@@ -2253,8 +2273,8 @@ local Library = {
                     Text = "100 / 100",
                     BackgroundTransparency = 1,
                     BorderSizePixel = 0,
-                    Size = UDim2.new(1, 0, 0, 12),
-                    Position = UDim2.new(0, 0, 0, 32),
+                    Size = UDim2.new(1, -52, 0, 12),
+                    Position = UDim2.new(0, 52, 0, 32),
                     TextXAlignment = Enum.TextXAlignment.Center
                 }):AddToTheme({TextColor3 = "Text"})
             end
@@ -2264,9 +2284,9 @@ local Library = {
                 Items["TargetHUD"].Instance.Visible = Bool and (TargetHUD.CurrentTarget ~= nil)
             end
 
-            function TargetHUD:SetTarget(TargetPlayer)
-                TargetHUD.CurrentTarget = TargetPlayer
-                if not TargetPlayer then
+            function TargetHUD:SetTarget(Target)
+                TargetHUD.CurrentTarget = Target
+                if not Target then
                     Items["TargetHUD"].Instance.Visible = false
                     return
                 end
@@ -2276,15 +2296,29 @@ local Library = {
                 end
 
                 pcall(function()
-                    local char = TargetPlayer.Character
+                    local char
+                    local player
+                    
+                    if Target:IsA("Player") then
+                        player = Target
+                        char = Target.Character
+                    elseif Target:IsA("BasePart") then
+                        char = Target.Parent
+                        player = game:GetService("Players"):GetPlayerFromCharacter(char)
+                    elseif Target:IsA("Model") then
+                        char = Target
+                        player = game:GetService("Players"):GetPlayerFromCharacter(char)
+                    end
+                    
                     local hum = char and char:FindFirstChildOfClass("Humanoid")
                     local hrp = char and char:FindFirstChild("HumanoidRootPart")
                     
                     if hum and hrp then
-                        local name = TargetPlayer.DisplayName or TargetPlayer.Name
+                        local name = player and (player.DisplayName or player.Name) or char.Name
                         local health = math.clamp(hum.Health, 0, hum.MaxHealth)
                         local maxHealth = hum.MaxHealth
-                        local dist = math.floor((hrp.Position - camera.CFrame.Position).Magnitude)
+                        local currentCamera = workspace.CurrentCamera
+                        local dist = math.floor((hrp.Position - currentCamera.CFrame.Position).Magnitude)
                         
                         Items["Name"].Instance.Text = name
                         Items["Distance"].Instance.Text = tostring(dist) .. " studs"
@@ -2292,6 +2326,9 @@ local Library = {
                         
                         local healthPct = health / maxHealth
                         Items["HealthBar"].Instance.Size = UDim2.new(healthPct, 0, 1, 0)
+                        
+                        local userId = player and player.UserId or 0
+                        Items["Avatar"].Instance.Image = "rbxthumb://type=AvatarHeadShot&id=" .. tostring(userId) .. "&w=150&h=150"
                     end
                 end)
             end
