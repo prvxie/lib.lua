@@ -2098,41 +2098,40 @@ local Library = {
                     return string.format("#%02x%02x%02x", math.clamp(color.R * 255, 0, 255), math.clamp(color.G * 255, 0, 255), math.clamp(color.B * 255, 0, 255))
                 end
 
+                local ping = 0
                 local connection
                 connection = Library:Connect(RunService.RenderStepped, function()
                     if not Items["Watermark"].Instance or not Items["Watermark"].Instance.Parent then
                         connection:Disconnect()
                         return
                     end
-                    
+
                     frameCount = frameCount + 1
                     local now = os.clock()
                     if now - lastUpdate >= 1 then
                         fps = frameCount
                         frameCount = 0
                         lastUpdate = now
+
+                        pcall(function()
+                            ping = math.round(game:GetService("Players").LocalPlayer:GetNetworkPing() * 1000)
+                        end)
+
+                        local accentColor = Library.Theme["Accent"] or Color3.fromRGB(255, 255, 255)
+                        local textColor = Library.Theme["Text"] or Color3.fromRGB(200, 200, 200)
+
+                        local titleStr = Watermark.Name
+                        local formattedText = string.format(
+                            '<font color="%s">%s</font> <font color="%s">| game: %s | fps: %d | ping: %dms |</font>',
+                            toHex(accentColor),
+                            titleStr,
+                            toHex(textColor),
+                            placeName,
+                            fps,
+                            ping
+                        )
+                        Items["Title"].Instance.Text = formattedText
                     end
-
-                    local ping = 0
-                    pcall(function()
-                        ping = math.round(game:GetService("Players").LocalPlayer:GetNetworkPing() * 1000)
-                    end)
-
-                    local accentColor = Library.Theme["Accent"] or Color3.fromRGB(255, 255, 255)
-                    local textColor = Library.Theme["Text"] or Color3.fromRGB(200, 200, 200)
-
-                    local titleStr = Watermark.Name
-                    -- Format: title | game: PlaceName | fps: 60 | ping: 50ms |
-                    local formattedText = string.format(
-                        '<font color="%s">%s</font> <font color="%s">| game: %s | fps: %d | ping: %dms |</font>',
-                        toHex(accentColor),
-                        titleStr,
-                        toHex(textColor),
-                        placeName,
-                        fps,
-                        ping
-                    )
-                    Items["Title"].Instance.Text = formattedText
                 end)
 
                 Watermark.Items = Items 
