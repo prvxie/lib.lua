@@ -2424,6 +2424,7 @@ local Library = {
             Self.KeybindList = KeybindList
         
             function KeybindList:SetVisibility(Bool)
+                KeybindList._userHidden = not Bool
                 Items["KeybindList"].Instance.Visible = Bool
             end
         
@@ -2462,7 +2463,7 @@ local Library = {
                     end
                 end
         
-                if #ActiveKeys == 0 then 
+                if #ActiveKeys == 0 or KeybindList._userHidden then
                     Items["KeybindList"].Instance.Visible = false
                 else
                     Items["KeybindList"].Instance.Visible = true
