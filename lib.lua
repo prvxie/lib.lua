@@ -36,7 +36,7 @@ local Mouse = cloneref(LocalPlayer:GetMouse())
 
 local Library = { 
     Flags = { },
-    MenuKeybind = tostring(Enum.KeyCode.Unknown), -- has to be a string
+    MenuKeybind = tostring(Enum.KeyCode.M), -- has to be a string
 
     Directory = "juanitaaaaaaa",
     Folders = {
@@ -2025,7 +2025,7 @@ local Library = {
                     Parent = Library.Holder.Instance,
                     AnchorPoint = Vector2.new(0, 0),
                     Position = UDim2.new(0, 10, 0, GuiInset + 10),
-                    Size = UDim2.new(0, 0, 0, 53),
+                    Size = UDim2.new(0, 0, 0, 22),
                     BorderSizePixel = 0,
                     AutomaticSize = Enum.AutomaticSize.X,
                     BackgroundColor3 = Library.Theme["Background"]
@@ -2053,33 +2053,8 @@ local Library = {
                 Library:Create("UIPadding", {
                     Name = "\0",
                     Parent = Items["Watermark"].Instance,
-                    PaddingTop = UDim.new(0, 10),
-                    PaddingBottom = UDim.new(0, 10),
-                    PaddingRight = UDim.new(0, 10),
-                    PaddingLeft = UDim.new(0, 10)
-                })
-                
-                Items["Holder"] = Library:Create("Frame", {
-                    Name = "\0",
-                    Parent = Items["Watermark"].Instance,
-                    BackgroundTransparency = 1,
-                    Size = UDim2.new(0, 0, 1, 0),
-                    BorderSizePixel = 0,
-                    AutomaticSize = Enum.AutomaticSize.X
-                })
-                
-                Library:Create("UIListLayout", {
-                    Name = "\0",
-                    Parent = Items["Holder"].Instance,
-                    VerticalAlignment = Enum.VerticalAlignment.Center,
-                    FillDirection = Enum.FillDirection.Horizontal,
-                    Padding = UDim.new(0, 6),
-                    SortOrder = Enum.SortOrder.LayoutOrder
-                })
-                
-                Library:Create("UIPadding", {
-                    Name = "\0",
-                    Parent = Items["Holder"].Instance,
+                    PaddingTop = UDim.new(0, 0),
+                    PaddingBottom = UDim.new(0, 0),
                     PaddingRight = UDim.new(0, 8),
                     PaddingLeft = UDim.new(0, 8)
                 })
@@ -2088,19 +2063,77 @@ local Library = {
                     Name = "\0",
                     FontFace = Library.Font,
                     TextSize = Library.FontSize,
-                    Parent = Items["Holder"].Instance,
-                    TextColor3 = Library.Theme["Accent"],
-                    Text = Watermark.Name,
+                    Parent = Items["Watermark"].Instance,
+                    RichText = true,
+                    TextColor3 = Color3.fromRGB(255, 255, 255),
+                    Text = "",
                     BackgroundTransparency = 1,
                     BorderSizePixel = 0,
-                    AutomaticSize = Enum.AutomaticSize.XY
-                }):AddToTheme({TextColor3 = 'Accent'})
-                
-                Library:Create("UIPadding", {
-                    Name = "\0",
-                    Parent = Items["Title"].Instance,
-                    PaddingBottom = UDim.new(0, 2)
+                    Size = UDim2.new(0, 0, 1, 0),
+                    AutomaticSize = Enum.AutomaticSize.X,
+                    TextYAlignment = Enum.TextYAlignment.Center,
+                    TextXAlignment = Enum.TextXAlignment.Left
                 })
+
+                local MarketPlaceService = game:GetService("MarketplaceService")
+                local placeName = "game"
+                task.spawn(function()
+                    pcall(function()
+                        local info = MarketPlaceService:GetProductInfo(game.PlaceId)
+                        if info and info.Name then
+                            local name = info.Name
+                            if #name > 20 then
+                                name = string.sub(name, 1, 17) .. "..."
+                            end
+                            placeName = name
+                        end
+                    end)
+                end)
+
+                local fps = 60
+                local lastUpdate = os.clock()
+                local frameCount = 0
+
+                local function toHex(color)
+                    return string.format("#%02x%02x%02x", math.clamp(color.R * 255, 0, 255), math.clamp(color.G * 255, 0, 255), math.clamp(color.B * 255, 0, 255))
+                end
+
+                local connection
+                connection = Library:Connect(RunService.RenderStepped, function()
+                    if not Items["Watermark"].Instance or not Items["Watermark"].Instance.Parent then
+                        connection:Disconnect()
+                        return
+                    end
+                    
+                    frameCount = frameCount + 1
+                    local now = os.clock()
+                    if now - lastUpdate >= 1 then
+                        fps = frameCount
+                        frameCount = 0
+                        lastUpdate = now
+                    end
+
+                    local ping = 0
+                    pcall(function()
+                        ping = math.round(game:GetService("Players").LocalPlayer:GetNetworkPing() * 1000)
+                    end)
+
+                    local accentColor = Library.Theme["Accent"] or Color3.fromRGB(255, 255, 255)
+                    local textColor = Library.Theme["Text"] or Color3.fromRGB(200, 200, 200)
+
+                    local titleStr = Watermark.Name
+                    -- Format: title | game: PlaceName | fps: 60 | ping: 50ms |
+                    local formattedText = string.format(
+                        '<font color="%s">%s</font> <font color="%s">| game: %s | fps: %d | ping: %dms |</font>',
+                        toHex(accentColor),
+                        titleStr,
+                        toHex(textColor),
+                        placeName,
+                        fps,
+                        ping
+                    )
+                    Items["Title"].Instance.Text = formattedText
+                end)
 
                 Watermark.Items = Items 
             end
@@ -2110,41 +2143,18 @@ local Library = {
             end
 
             function Watermark:SetText(Text)
-                Items["Title"].Instance.Text = tostring(Text)
+                -- Compatibility stub
             end
             
             function Watermark:Add(Text)
-                Library:Create("Frame", {
-                    Name = "\0",
-                    Parent = Items["Holder"].Instance,
-                    Size = UDim2.new(0, 1, 1, -10),
-                    BorderSizePixel = 0,
-                    BackgroundColor3 = Library.Theme["Outline"]
-                }):AddToTheme({BackgroundColor3 = 'Outline'})
-                
-                local NewItem = Library:Create("TextLabel", {
-                    Name = "\0",
-                    FontFace = Library.Font,
-                    TextSize = Library.FontSize,
-                    Parent = Items["Holder"].Instance,
-                    TextColor3 = Library.Theme["Text"],
-                    Text = Text,
-                    BackgroundTransparency = 1,
-                    BorderSizePixel = 0,
-                    AutomaticSize = Enum.AutomaticSize.XY
-                }):AddToTheme({TextColor3 = 'Text'})
-
-                function NewItem:SetText(Text)
-                    NewItem.Instance.Text = tostring(Text)
-                end
-
-                function NewItem:SetVisibility(Bool)
-                    NewItem.Instance.Visible = Bool
-                end
-
-                return NewItem
+                -- Compatibility stub
+                local Dummy = { }
+                function Dummy:SetText() end
+                function Dummy:SetVisibility() end
+                return Dummy
             end
 
+            Self.WatermarkObj = Watermark
             Self.Watermark = Watermark
             return setmetatable(Watermark, Library)
         end
@@ -2310,7 +2320,7 @@ local Library = {
                     Parent = Library.Holder.Instance, 
                     AnchorPoint = Vector2.new(0, 0.5), 
                     Position = UDim2.new(0, 10, 0.5, 0), 
-                    Size = UDim2.new(0, 34, 0, 53), 
+                    Size = UDim2.new(0, 34, 0, 22), 
                     ClipsDescendants = true, 
                     BorderSizePixel = 0, 
                     BackgroundColor3 = Library.Theme["Background"]
@@ -2335,23 +2345,23 @@ local Library = {
         
                 Library:Create("UIPadding", {
                     Parent = Items["KeybindList"].Instance, 
-                    PaddingTop = UDim.new(0, 10), 
-                    PaddingBottom = UDim.new(0, 12), 
-                    PaddingRight = UDim.new(0, 10), 
-                    PaddingLeft = UDim.new(0, 10)
+                    PaddingTop = UDim.new(0, 4), 
+                    PaddingBottom = UDim.new(0, 4), 
+                    PaddingRight = UDim.new(0, 8), 
+                    PaddingLeft = UDim.new(0, 8)
                 })
         
                 Items["Content"] = Library:Create("Frame", {
                     Parent = Items["KeybindList"].Instance, 
                     BackgroundTransparency = 1, 
                     Position = UDim2.new(0, 0, 0, 0), 
-                    Size = UDim2.new(0, 0, 0, 25), 
+                    Size = UDim2.new(0, 0, 0, 14), 
                     BorderSizePixel = 0
                 })
 
                 Library:Create("UIListLayout", {
                     Parent = Items["Content"].Instance,
-                    Padding = UDim.new(0, 4),
+                    Padding = UDim.new(0, 2),
                     SortOrder = Enum.SortOrder.LayoutOrder
                 })
             end
@@ -2365,7 +2375,7 @@ local Library = {
         
             function KeybindList:UpdateSize()
                 local Width = 0
-                local Y = 6
+                local Y = 0
                 local Count = 0
         
                 for Index, Value in KeybindList.Keys do
@@ -2375,17 +2385,17 @@ local Library = {
                         Value.Object.Instance.Visible = true
                         Width = math.max(Width, Value.Object.Instance.TextBounds.X)
         
-                        Value.Object:Tween({Position = UDim2.new(0, 8, 0, Y), Size = UDim2.new(0, Value.Object.Instance.TextBounds.X, 0, RowHeight), TextTransparency = 0}, KeybindTweenInfo)
+                        Value.Object:Tween({Position = UDim2.new(0, 0, 0, Y), Size = UDim2.new(0, Value.Object.Instance.TextBounds.X, 0, RowHeight), TextTransparency = 0}, KeybindTweenInfo)
         
-                        Y += RowHeight + 4
+                        Y += RowHeight + 2
                         Count += 1
                     end
                 end
         
-                local TargetHeight = Count > 0 and math.max(25, Y + 5) or 25
+                local TargetHeight = Count > 0 and math.max(14, Y - 2) or 14
         
                 Items["Content"].Instance.Size = UDim2.new(0, Width, 0, TargetHeight)
-                Items["KeybindList"]:Tween({Size = UDim2.new(0, Width + 34, 0, TargetHeight + 28)}, KeybindTweenInfo)
+                Items["KeybindList"]:Tween({Size = UDim2.new(0, Width + 16, 0, TargetHeight + 8)}, KeybindTweenInfo)
 
                 local ActiveKeys = { }
 
@@ -2412,7 +2422,7 @@ local Library = {
                     BackgroundTransparency = 1, 
                     BorderSizePixel = 0, 
                     Size = UDim2.new(0, 0, 0, 14), 
-                    Position = UDim2.new(0, -8, 0, 6), 
+                    Position = UDim2.new(0, 0, 0, 0), 
                     TextTransparency = 1, 
                     Visible = false, 
                     TextYAlignment = Enum.TextYAlignment.Center, 
@@ -2815,6 +2825,9 @@ local Library = {
             end
 
             Library:Connect(UserInputService.InputBegan, function(Input)
+                if Library.MenuKeybind == "Enum.KeyCode.Unknown" or Library.MenuKeybind == "Enum.KeyCode.None" or Library.MenuKeybind == "Unknown" or Library.MenuKeybind == "none" or Library.MenuKeybind == "None" then
+                    return
+                end
                 if tostring(Input.KeyCode) == Library.MenuKeybind or tostring(Input.UserInputType) == Library.MenuKeybind then
                     if UserInputService:GetFocusedTextBox() then
                         return
