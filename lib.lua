@@ -1922,6 +1922,9 @@ local Library = {
     
                 local InputBegan
                 InputBegan = UserInputService.InputBegan:Connect(function(Input)
+                    if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.MouseButton2 then
+                        return
+                    end
                     if Input.UserInputType == Enum.UserInputType.Keyboard then 
                         Keybind:Set(Input.KeyCode)
                     else
@@ -2144,6 +2147,153 @@ local Library = {
 
             Self.Watermark = Watermark
             return setmetatable(Watermark, Library)
+        end
+
+        Library.TargetHUD = function(Self, Params)
+            Params = Params or {}
+            local TargetHUD = {
+                Visible = false,
+                CurrentTarget = nil,
+                Items = {}
+            }
+
+            local Items = {} do
+                Items["TargetHUD"] = Library:Create("Frame", {
+                    Name = "\0",
+                    Parent = Library.Holder.Instance,
+                    AnchorPoint = Vector2.new(0.5, 0.5),
+                    Position = UDim2.new(0.5, 0, 0.75, 0),
+                    Size = UDim2.new(0, 200, 0, 60),
+                    BorderSizePixel = 0,
+                    Visible = false,
+                    BackgroundColor3 = Library.Theme["Background"]
+                }):AddToTheme({BackgroundColor3 = "Background"})
+
+                Items["TargetHUD"]:MakeDraggable()
+
+                Library:Create("UIStroke", {
+                    Parent = Items["TargetHUD"].Instance,
+                    ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+                    LineJoinMode = Enum.LineJoinMode.Miter,
+                    Color = Library.Theme["Border"],
+                    BorderOffset = UDim.new(0, 1)
+                }):AddToTheme({Color = "Border"})
+
+                Library:Create("UIStroke", {
+                    Parent = Items["TargetHUD"].Instance,
+                    ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+                    LineJoinMode = Enum.LineJoinMode.Miter,
+                    Color = Library.Theme["Outline"]
+                }):AddToTheme({Color = "Outline"})
+
+                Library:Create("UIPadding", {
+                    Parent = Items["TargetHUD"].Instance,
+                    PaddingTop = UDim.new(0, 8),
+                    PaddingBottom = UDim.new(0, 8),
+                    PaddingRight = UDim.new(0, 8),
+                    PaddingLeft = UDim.new(0, 8)
+                })
+
+                Items["Name"] = Library:Create("TextLabel", {
+                    Parent = Items["TargetHUD"].Instance,
+                    FontFace = Library.Font,
+                    TextSize = Library.FontSize,
+                    TextColor3 = Library.Theme["Text"],
+                    Text = "No Target",
+                    BackgroundTransparency = 1,
+                    BorderSizePixel = 0,
+                    Size = UDim2.new(1, 0, 0, 14),
+                    Position = UDim2.new(0, 0, 0, 0),
+                    TextXAlignment = Enum.TextXAlignment.Left
+                }):AddToTheme({TextColor3 = "Text"})
+
+                Items["Distance"] = Library:Create("TextLabel", {
+                    Parent = Items["TargetHUD"].Instance,
+                    FontFace = Library.Font,
+                    TextSize = Library.FontSize,
+                    TextColor3 = Library.Theme["Inactive Text"],
+                    Text = "0 studs",
+                    BackgroundTransparency = 1,
+                    BorderSizePixel = 0,
+                    Size = UDim2.new(1, 0, 0, 14),
+                    Position = UDim2.new(0, 0, 0, 0),
+                    TextXAlignment = Enum.TextXAlignment.Right
+                }):AddToTheme({TextColor3 = "Inactive Text"})
+
+                Items["HealthBarBg"] = Library:Create("Frame", {
+                    Parent = Items["TargetHUD"].Instance,
+                    Size = UDim2.new(1, 0, 0, 6),
+                    Position = UDim2.new(0, 0, 0, 22),
+                    BorderSizePixel = 0,
+                    BackgroundColor3 = Library.Theme["Inline"]
+                }):AddToTheme({BackgroundColor3 = "Inline"})
+
+                Items["HealthBar"] = Library:Create("Frame", {
+                    Parent = Items["HealthBarBg"].Instance,
+                    Size = UDim2.new(1, 0, 1, 0),
+                    BorderSizePixel = 0,
+                    BackgroundColor3 = Library.Theme["Accent"]
+                }):AddToTheme({BackgroundColor3 = "Accent"})
+
+                Items["HealthText"] = Library:Create("TextLabel", {
+                    Parent = Items["TargetHUD"].Instance,
+                    FontFace = Library.Font,
+                    TextSize = Library.FontSize - 1,
+                    TextColor3 = Library.Theme["Text"],
+                    Text = "100 / 100",
+                    BackgroundTransparency = 1,
+                    BorderSizePixel = 0,
+                    Size = UDim2.new(1, 0, 0, 12),
+                    Position = UDim2.new(0, 0, 0, 32),
+                    TextXAlignment = Enum.TextXAlignment.Center
+                }):AddToTheme({TextColor3 = "Text"})
+            end
+
+            function TargetHUD:SetVisibility(Bool)
+                TargetHUD.Visible = Bool
+                Items["TargetHUD"].Instance.Visible = Bool and (TargetHUD.CurrentTarget ~= nil)
+            end
+
+            function TargetHUD:SetTarget(TargetPlayer)
+                TargetHUD.CurrentTarget = TargetPlayer
+                if not TargetPlayer then
+                    Items["TargetHUD"].Instance.Visible = false
+                    return
+                end
+
+                if TargetHUD.Visible then
+                    Items["TargetHUD"].Instance.Visible = true
+                end
+
+                pcall(function()
+                    local char = TargetPlayer.Character
+                    local hum = char and char:FindFirstChildOfClass("Humanoid")
+                    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                    
+                    if hum and hrp then
+                        local name = TargetPlayer.DisplayName or TargetPlayer.Name
+                        local health = math.clamp(hum.Health, 0, hum.MaxHealth)
+                        local maxHealth = hum.MaxHealth
+                        local dist = math.floor((hrp.Position - camera.CFrame.Position).Magnitude)
+                        
+                        Items["Name"].Instance.Text = name
+                        Items["Distance"].Instance.Text = tostring(dist) .. " studs"
+                        Items["HealthText"].Instance.Text = string.format("%d / %d", health, maxHealth)
+                        
+                        local healthPct = health / maxHealth
+                        Items["HealthBar"].Instance.Size = UDim2.new(healthPct, 0, 1, 0)
+                    end
+                end)
+            end
+
+            Library:Connect(RunService.RenderStepped, function()
+                if TargetHUD.Visible and TargetHUD.CurrentTarget then
+                    TargetHUD:SetTarget(TargetHUD.CurrentTarget)
+                end
+            end)
+
+            Self.TargetHUDObj = TargetHUD
+            return setmetatable(TargetHUD, Library)
         end
 
         local KeybindTweenInfo = TweenInfo.new(0.55, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out) -- this is only for the keybind list and should not be used anywhere else
