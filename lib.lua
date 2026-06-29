@@ -18,7 +18,9 @@ if getgenv().Library then
 end
 
 cloneref = cloneref or function(...) return ... end 
-LPH_NO_VIRTUALIZE = LPH_NO_VIRTUALIZE or function(f) return f end
+if not LPH_OBFUSCATED then
+    LPH_NO_VIRTUALIZE = LPH_NO_VIRTUALIZE or function(f) return f end
+end
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -600,7 +602,7 @@ local Library = {
             end
         end)
 
-        Library:Connect(RunService.RenderStepped, LPH_NO_VIRTUALIZE(function()
+        Library:Connect(RunService.RenderStepped, function()
             if not Resizing or not CurrentSide then 
                 return 
             end
@@ -639,10 +641,10 @@ local Library = {
         
             Self:Tween({Position = UDim2.fromOffset(x, y)}, TweenInfo.new(0.65, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out))
             Self:Tween({Size = UDim2.fromOffset(w, h)}, TweenInfo.new(0.65, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out))
-        end))
+        end)
     end
 
-    Library.IsMouseOverFrame = LPH_NO_VIRTUALIZE(function(Self)
+    Library.IsMouseOverFrame = function(Self)
         if not Self.Instance then 
             return 
         end
@@ -653,9 +655,9 @@ local Library = {
 
         return MousePosition.X >= Object.AbsolutePosition.X and MousePosition.X <= Object.AbsolutePosition.X + Object.AbsoluteSize.X 
         and MousePosition.Y >= Object.AbsolutePosition.Y and MousePosition.Y <= Object.AbsolutePosition.Y + Object.AbsoluteSize.Y
-    end)
+    end
 
-    Library.SafeCall = LPH_NO_VIRTUALIZE(function(Self, Function, ...)
+    Library.SafeCall = function(Self, Function, ...)
         local Arguements = { ... }
         local Success, Result = pcall(Function, table.unpack(Arguements))
 
@@ -665,7 +667,7 @@ local Library = {
         end
 
         return Success, Result
-    end)
+    end
 
     Library.Round = function(Self, Number, Float)
         local Multiplier = 1 / (Float or 1)
@@ -2257,7 +2259,7 @@ local Library = {
 
                 local ping = 0
                 local connection
-                connection = Library:Connect(RunService.RenderStepped, LPH_NO_VIRTUALIZE(function()
+                connection = Library:Connect(RunService.RenderStepped, function()
                     if not Items["Watermark"].Instance or not Items["Watermark"].Instance.Parent then
                         connection:Disconnect()
                         return
@@ -2289,7 +2291,7 @@ local Library = {
                         )
                         Items["Title"].Instance.Text = formattedText
                     end
-                end))
+                end)
 
                 Watermark.Items = Items 
             end
@@ -2489,11 +2491,11 @@ local Library = {
                 end)
             end
 
-            Library:Connect(RunService.RenderStepped, LPH_NO_VIRTUALIZE(function()
+            Library:Connect(RunService.RenderStepped, function()
                 if TargetHUD.Visible and TargetHUD.CurrentTarget then
                     TargetHUD:SetTarget(TargetHUD.CurrentTarget)
                 end
-            end))
+            end)
 
             Self.TargetHUDObj = TargetHUD
             return setmetatable(TargetHUD, Library)
