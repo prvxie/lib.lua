@@ -2491,11 +2491,11 @@ local Library = {
                 end)
             end
 
-            Library:Connect(RunService.RenderStepped, function()
+            Library:Connect(RunService.RenderStepped, LPH_NO_VIRTUALIZE(function()
                 if TargetHUD.Visible and TargetHUD.CurrentTarget then
                     TargetHUD:SetTarget(TargetHUD.CurrentTarget)
                 end
-            end)
+            end))
 
             Self.TargetHUDObj = TargetHUD
             return setmetatable(TargetHUD, Library)
