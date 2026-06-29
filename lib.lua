@@ -18,6 +18,7 @@ if getgenv().Library then
 end
 
 cloneref = cloneref or function(...) return ... end 
+LPH_NO_VIRTUALIZE = LPH_NO_VIRTUALIZE or function(f) return f end
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -599,7 +600,7 @@ local Library = {
             end
         end)
 
-        Library:Connect(RunService.RenderStepped, function()
+        Library:Connect(RunService.RenderStepped, LPH_NO_VIRTUALIZE(function()
             if not Resizing or not CurrentSide then 
                 return 
             end
@@ -638,10 +639,10 @@ local Library = {
         
             Self:Tween({Position = UDim2.fromOffset(x, y)}, TweenInfo.new(0.65, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out))
             Self:Tween({Size = UDim2.fromOffset(w, h)}, TweenInfo.new(0.65, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out))
-        end)
+        end))
     end
 
-    Library.IsMouseOverFrame = function(Self)
+    Library.IsMouseOverFrame = LPH_NO_VIRTUALIZE(function(Self)
         if not Self.Instance then 
             return 
         end
@@ -652,9 +653,9 @@ local Library = {
 
         return MousePosition.X >= Object.AbsolutePosition.X and MousePosition.X <= Object.AbsolutePosition.X + Object.AbsoluteSize.X 
         and MousePosition.Y >= Object.AbsolutePosition.Y and MousePosition.Y <= Object.AbsolutePosition.Y + Object.AbsoluteSize.Y
-    end
+    end)
 
-    Library.SafeCall = function(Self, Function, ...)
+    Library.SafeCall = LPH_NO_VIRTUALIZE(function(Self, Function, ...)
         local Arguements = { ... }
         local Success, Result = pcall(Function, table.unpack(Arguements))
 
@@ -664,7 +665,7 @@ local Library = {
         end
 
         return Success, Result
-    end
+    end)
 
     Library.Round = function(Self, Number, Float)
         local Multiplier = 1 / (Float or 1)
@@ -827,6 +828,162 @@ local Library = {
         local Y = (Anchor.AbsolutePosition.Y + Anchor.AbsoluteSize.Y + GuiInset + ExtraY) / Scale
     
         return UDim2.fromOffset(X, Y)
+    end
+
+    Library.ContextMenu = function(Self, Options)
+        Options = Options or {}
+
+        local Menu = {
+            IsOpen = false,
+            Items = {},
+            Connections = {},
+        }
+
+        local Scale = Library:GetScreenScale()
+
+        local MenuFrame = Library:Create("TextButton", {
+            Name = "\0",
+            FontFace = Library.Font,
+            TextSize = Library.FontSize,
+            Parent = Library.Holder.Instance,
+            Visible = false,
+            TextColor3 = Color3.fromRGB(0, 0, 0),
+            Text = "",
+            AutoButtonColor = false,
+            Size = UDim2.new(0, 160, 0, 0),
+            Position = UDim2.new(0, 0, 0, 0),
+            BorderSizePixel = 0,
+            AutomaticSize = Enum.AutomaticSize.Y,
+            BackgroundColor3 = Library.Theme["Background"],
+            ZIndex = 100,
+        }):AddToTheme({BackgroundColor3 = "Background"})
+
+        Library:Create("UIStroke", {
+            Name = "\0",
+            Parent = MenuFrame.Instance,
+            ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+            LineJoinMode = Enum.LineJoinMode.Miter,
+            Color = Library.Theme["Border"],
+            BorderOffset = UDim.new(0, 1),
+            ZIndex = 100,
+        }):AddToTheme({Color = "Border"})
+
+        Library:Create("UIStroke", {
+            Name = "\0",
+            Parent = MenuFrame.Instance,
+            ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+            LineJoinMode = Enum.LineJoinMode.Miter,
+            Color = Library.Theme["Outline"],
+            ZIndex = 100,
+        }):AddToTheme({Color = "Outline"})
+
+        Library:Create("UIPadding", {
+            Name = "\0",
+            Parent = MenuFrame.Instance,
+            PaddingTop = UDim.new(0, 4),
+            PaddingBottom = UDim.new(0, 4),
+            PaddingRight = UDim.new(0, 4),
+            PaddingLeft = UDim.new(0, 4),
+        })
+
+        local ListLayout = Library:Create("UIListLayout", {
+            Name = "\0",
+            Parent = MenuFrame.Instance,
+            Padding = UDim.new(0, 2),
+            SortOrder = Enum.SortOrder.LayoutOrder,
+        })
+
+        for _, Opt in ipairs(Options) do
+            if Opt.Type == "Divider" then
+                Library:Create("Frame", {
+                    Name = "\0",
+                    Parent = MenuFrame.Instance,
+                    Size = UDim2.new(1, 0, 0, 1),
+                    BorderSizePixel = 0,
+                    BackgroundColor3 = Library.Theme["Border"],
+                    ZIndex = 100,
+                }):AddToTheme({BackgroundColor3 = "Border"})
+            else
+                local Btn = Library:Create("TextButton", {
+                    Name = "\0",
+                    FontFace = Library.Font,
+                    TextSize = Library.FontSize,
+                    Parent = MenuFrame.Instance,
+                    TextColor3 = Library.Theme["Text"],
+                    Text = Opt.Name or "",
+                    AutoButtonColor = false,
+                    Size = UDim2.new(1, 0, 0, 16),
+                    BorderSizePixel = 0,
+                    BackgroundColor3 = Library.Theme["Element 2"],
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    ZIndex = 100,
+                }):AddToTheme({BackgroundColor3 = "Element 2", TextColor3 = "Text"})
+
+                Library:Create("UIPadding", {
+                    Name = "\0",
+                    Parent = Btn.Instance,
+                    PaddingLeft = UDim.new(0, 6),
+                })
+
+                Btn:OnHover(function()
+                    Btn:Tween({BackgroundColor3 = Library.Theme["Hovered Element"]})
+                end, function()
+                    Btn:Tween({BackgroundColor3 = Library.Theme["Element 2"]})
+                end)
+
+                Btn:Connect("MouseButton1Click", function()
+                    if Opt.Callback then
+                        Library:SafeCall(Opt.Callback)
+                    end
+                    Menu:SetOpen(false)
+                end)
+
+                table.insert(Menu.Items, Btn)
+            end
+        end
+
+        function Menu:SetOpen(Bool)
+            Menu.IsOpen = Bool
+            if Bool then
+                MenuFrame.Instance.Visible = true
+                MenuFrame.Instance.Size = UDim2.new(0, 160, 0, 0)
+                MenuFrame:FadeDescendants(true)
+                if Library.OpenFrames then
+                    for _, Frame in Library.OpenFrames do
+                        if Frame ~= Menu then
+                            Frame:SetOpen(false)
+                        end
+                    end
+                end
+                Library.OpenFrames[Menu] = Menu
+            else
+                MenuFrame:FadeDescendants(false, function()
+                    MenuFrame.Instance.Visible = false
+                end)
+                if Library.OpenFrames[Menu] then
+                    Library.OpenFrames[Menu] = nil
+                end
+            end
+        end
+
+        function Menu:ShowAt(X, Y)
+            local Scale = Library:GetScreenScale()
+            local PosX = X / Scale
+            local PosY = (Y + GuiInset) / Scale
+            MenuFrame.Instance.Position = UDim2.fromOffset(PosX, PosY)
+            Menu:SetOpen(true)
+        end
+
+        Library:Connect(UserInputService.InputBegan, function(Input, GPE)
+            if Input.UserInputType == Enum.UserInputType.MouseButton1 and Menu.IsOpen then
+                if not MenuFrame:IsMouseOverFrame() then
+                    Menu:SetOpen(false)
+                end
+            end
+        end)
+
+        Menu.Instance = MenuFrame.Instance
+        return Menu
     end
 
     Library.VisibleCheck = function(Self)
@@ -2100,7 +2257,7 @@ local Library = {
 
                 local ping = 0
                 local connection
-                connection = Library:Connect(RunService.RenderStepped, function()
+                connection = Library:Connect(RunService.RenderStepped, LPH_NO_VIRTUALIZE(function()
                     if not Items["Watermark"].Instance or not Items["Watermark"].Instance.Parent then
                         connection:Disconnect()
                         return
@@ -2132,7 +2289,7 @@ local Library = {
                         )
                         Items["Title"].Instance.Text = formattedText
                     end
-                end)
+                end))
 
                 Watermark.Items = Items 
             end
@@ -2332,11 +2489,11 @@ local Library = {
                 end)
             end
 
-            Library:Connect(RunService.RenderStepped, function()
+            Library:Connect(RunService.RenderStepped, LPH_NO_VIRTUALIZE(function()
                 if TargetHUD.Visible and TargetHUD.CurrentTarget then
                     TargetHUD:SetTarget(TargetHUD.CurrentTarget)
                 end
-            end)
+            end))
 
             Self.TargetHUDObj = TargetHUD
             return setmetatable(TargetHUD, Library)
@@ -3557,9 +3714,15 @@ local Library = {
                     Default = Keybind.Default,
                     Mode = Keybind.Mode,
                     Callback = function(Toggled)
-                        Toggle:Set(Toggled)
-                        if Data.Callback then 
-                            Library:SafeCall(Data.Callback, Toggled)
+                        local bindData = Flags[Keybind.Flag]
+                        local mode = (type(bindData) == "table" and bindData.Mode) or Keybind.Mode or "Toggle"
+                        if mode == "Hold" then
+                            Toggle:Set(Toggled)
+                        else
+                            Toggle:Set(not Toggle.Value)
+                        end
+                        if Data.Callback then
+                            Library:SafeCall(Data.Callback, Toggle.Value)
                         end
                     end
                 })
@@ -3591,6 +3754,25 @@ local Library = {
 
             Items["Toggle"]:Connect("MouseButton1Down", function()
                 Toggle:Set(not Toggle.Value)
+            end)
+
+            Items["Toggle"]:Connect("MouseButton2Down", function()
+                local Menu = Library:ContextMenu({
+                    { Name = "Reset to Default", Callback = function()
+                        Toggle:Set(Toggle.Default)
+                    end },
+                    { Name = Toggle.Value and "Set to OFF" or "Set to ON", Callback = function()
+                        Toggle:Set(not Toggle.Value)
+                    end },
+                    { Type = "Divider" },
+                    { Name = "Copy Value", Callback = function()
+                        if setclipboard then
+                            setclipboard(tostring(Toggle.Value))
+                        end
+                    end },
+                })
+                local MousePos = UserInputService:GetMouseLocation()
+                Menu:ShowAt(MousePos.X, MousePos.Y)
             end)
 
             Toggle:Set(Toggle.Default)
@@ -3935,6 +4117,28 @@ local Library = {
                         Slider:Set(Value)
                     end
                 end
+            end)
+
+            Items["RealSlider"]:Connect("MouseButton2Down", function()
+                local Menu = Library:ContextMenu({
+                    { Name = "Reset to Default", Callback = function()
+                        Slider:Set(Slider.Default)
+                    end },
+                    { Name = "Set to Min", Callback = function()
+                        Slider:Set(Slider.Min)
+                    end },
+                    { Name = "Set to Max", Callback = function()
+                        Slider:Set(Slider.Max)
+                    end },
+                    { Type = "Divider" },
+                    { Name = "Copy Value", Callback = function()
+                        if setclipboard then
+                            setclipboard(tostring(Slider.Value))
+                        end
+                    end },
+                })
+                local MousePos = UserInputService:GetMouseLocation()
+                Menu:ShowAt(MousePos.X, MousePos.Y)
             end)
 
             Slider:Set(Slider.Default)
@@ -4392,6 +4596,22 @@ local Library = {
 
             Items["RealDropdown"]:Connect("MouseButton1Down", function()
                 Dropdown:SetOpen(not Dropdown.IsOpen)
+            end)
+
+            Items["RealDropdown"]:Connect("MouseButton2Down", function()
+                local Menu = Library:ContextMenu({
+                    { Name = "Reset to Default", Callback = function()
+                        Dropdown:Set(Dropdown.Default)
+                    end },
+                    { Type = "Divider" },
+                    { Name = "Copy Value", Callback = function()
+                        if setclipboard then
+                            setclipboard(tostring(Dropdown.Value))
+                        end
+                    end },
+                })
+                local MousePos = UserInputService:GetMouseLocation()
+                Menu:ShowAt(MousePos.X, MousePos.Y)
             end)
 
             for Index, Value in Dropdown.OptionItems do 
