@@ -4145,6 +4145,39 @@ local Library = {
 
             Slider:Set(Slider.Default)
 
+            function Slider:Split(Data)
+                Data = Data or { }
+                local Flag = Data.Flag or (Slider.Flag .. "Split")
+                local Default = Data.Default or false
+                local Callback = Data.Callback or function() end
+                
+                local SplitToggle = Library:Create("TextButton", {
+                    Name = "\0",
+                    FontFace = Library.Font,
+                    TextSize = Library.FontSize - 2,
+                    Text = "[Split]",
+                    Parent = Items["Slider"].Instance,
+                    TextColor3 = Default and (Library.Theme["Accent"] or Color3.fromRGB(142, 97, 255)) or (Library.Theme["Text"] or Color3.fromRGB(200, 200, 200)),
+                    BackgroundTransparency = 1,
+                    BorderSizePixel = 0,
+                    Position = UDim2.new(1, -45, 0, 0),
+                    Size = UDim2.new(0, 40, 0, 15),
+                    TextXAlignment = Enum.TextXAlignment.Right
+                })
+                
+                local State = Default
+                Flags[Flag] = State
+                
+                SplitToggle.MouseButton1Click:Connect(function()
+                    State = not State
+                    Flags[Flag] = State
+                    SplitToggle.TextColor3 = State and (Library.Theme["Accent"] or Color3.fromRGB(142, 97, 255)) or (Library.Theme["Text"] or Color3.fromRGB(200, 200, 200))
+                    Library:SafeCall(Callback, State)
+                end)
+                
+                return Slider
+            end
+
             SetFlags[Slider.Flag] = function(Value)
                 Slider:Set(Value)
             end
