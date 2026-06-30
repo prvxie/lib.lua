@@ -4044,11 +4044,49 @@ local Library = {
                     TextColor3 = Library.Theme["Inactive Text"],
                     Text = "2.5",
                     AnchorPoint = Vector2.new(1, 0),
-                    Position = UDim2.new(1, 1, 0, 0),
+                    Position = UDim2.new(1, -25, 0, 0), -- Shifted left to make space for arrow buttons
                     BackgroundTransparency = 1,
                     BorderSizePixel = 0,
                     AutomaticSize = Enum.AutomaticSize.XY
-                }):AddToTheme({TextColor3 = 'Inactive Text'})                
+                }):AddToTheme({TextColor3 = 'Inactive Text'})
+
+                local DecBtn = Library:Create("TextButton", {
+                    Name = "\0",
+                    FontFace = Library.Font,
+                    TextSize = Library.FontSize,
+                    Text = "<",
+                    TextColor3 = Library.Theme["Text"],
+                    Parent = Items["Slider"].Instance,
+                    BackgroundTransparency = 1,
+                    BorderSizePixel = 0,
+                    Position = UDim2.new(1, -22, 0, 0),
+                    Size = UDim2.new(0, 10, 0, 12),
+                    TextXAlignment = Enum.TextXAlignment.Center
+                }):AddToTheme({TextColor3 = 'Text'})
+
+                local IncBtn = Library:Create("TextButton", {
+                    Name = "\0",
+                    FontFace = Library.Font,
+                    TextSize = Library.FontSize,
+                    Text = ">",
+                    TextColor3 = Library.Theme["Text"],
+                    Parent = Items["Slider"].Instance,
+                    BackgroundTransparency = 1,
+                    BorderSizePixel = 0,
+                    Position = UDim2.new(1, -10, 0, 0),
+                    Size = UDim2.new(0, 10, 0, 12),
+                    TextXAlignment = Enum.TextXAlignment.Center
+                }):AddToTheme({TextColor3 = 'Text'})
+
+                DecBtn.Instance.MouseButton1Click:Connect(function()
+                    local step = 10 ^ -(Slider.Decimals or 0)
+                    Slider:Set(Slider.Value - step)
+                end)
+
+                IncBtn.Instance.MouseButton1Click:Connect(function()
+                    local step = 10 ^ -(Slider.Decimals or 0)
+                    Slider:Set(Slider.Value + step)
+                end)
 
                 Slider.Items = Items 
             end
@@ -4145,38 +4183,7 @@ local Library = {
 
             Slider:Set(Slider.Default)
 
-            function Slider:Split(Data)
-                Data = Data or { }
-                local Flag = Data.Flag or (Slider.Flag .. "Split")
-                local Default = Data.Default or false
-                local Callback = Data.Callback or function() end
-                
-                local SplitToggle = Library:Create("TextButton", {
-                    Name = "\0",
-                    FontFace = Library.Font,
-                    TextSize = Library.FontSize - 2,
-                    Text = "[Split]",
-                    Parent = Items["Slider"].Instance,
-                    TextColor3 = Default and (Library.Theme["Accent"] or Color3.fromRGB(142, 97, 255)) or (Library.Theme["Text"] or Color3.fromRGB(200, 200, 200)),
-                    BackgroundTransparency = 1,
-                    BorderSizePixel = 0,
-                    Position = UDim2.new(1, -45, 0, 0),
-                    Size = UDim2.new(0, 40, 0, 15),
-                    TextXAlignment = Enum.TextXAlignment.Right
-                })
-                
-                local State = Default
-                Flags[Flag] = State
-                
-                SplitToggle.Instance.MouseButton1Click:Connect(function()
-                    State = not State
-                    Flags[Flag] = State
-                    SplitToggle.Instance.TextColor3 = State and (Library.Theme["Accent"] or Color3.fromRGB(142, 97, 255)) or (Library.Theme["Text"] or Color3.fromRGB(200, 200, 200))
-                    Library:SafeCall(Callback, State)
-                end)
-                
-                return Slider
-            end
+
 
             SetFlags[Slider.Flag] = function(Value)
                 Slider:Set(Value)
