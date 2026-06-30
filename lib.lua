@@ -3273,14 +3273,21 @@ local Library = {
                 Side = Params.Side or Params.side or 1,
 
                 Window = Self.Window,
-                Page = Self,
+                Page = Self.Page or Self,
                 Items = { },
             }
 
             local Items = { } do 
+                local parentInstance
+                if Self.Items and Self.Items["Content"] then
+                    parentInstance = Self.Items["Content"].Instance
+                else
+                    parentInstance = Section.Page.ColumnsData[Section.Side].Instance
+                end
+                
                 Items["Section"] = Library:Create("Frame", {
                     Name = "\0",
-                    Parent = Section.Page.ColumnsData[Section.Side].Instance,
+                    Parent = parentInstance,
                     Size = UDim2.new(1, 0, 0, 0),
                     BorderSizePixel = 0,
                     AutomaticSize = Enum.AutomaticSize.Y,
@@ -3524,7 +3531,7 @@ local Library = {
                 end
 
                 table.insert(MultiSection.SubTabs, SubTab)
-                return setmetatable(SubTab, Library)
+                return setmetatable(SubTab, { __index = Library })
             end
 
             return setmetatable(MultiSection, Library)
