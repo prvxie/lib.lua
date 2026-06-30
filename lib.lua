@@ -3979,8 +3979,8 @@ local Library = {
                     Text = "",
                     AutoButtonColor = false,
                     AnchorPoint = Vector2.new(0, 1),
-                    Position = UDim2.new(0, 15, 1, 0),
-                    Size = UDim2.new(1, -30, 0, 9),
+                    Position = UDim2.new(0, 0, 1, 0),
+                    Size = UDim2.new(1, 0, 0, 9),
                     BorderSizePixel = 0,
                     BackgroundColor3 = Library.Theme["Border"]
                 }):AddToTheme({BackgroundColor3 = 'Border'})
@@ -4044,51 +4044,11 @@ local Library = {
                     TextColor3 = Library.Theme["Inactive Text"],
                     Text = "2.5",
                     AnchorPoint = Vector2.new(1, 0),
-                    Position = UDim2.new(1, 1, 0, 0), -- Restored to original position at top right
+                    Position = UDim2.new(1, 1, 0, 0),
                     BackgroundTransparency = 1,
                     BorderSizePixel = 0,
                     AutomaticSize = Enum.AutomaticSize.XY
                 }):AddToTheme({TextColor3 = 'Inactive Text'})
-
-                local DecBtn = Library:Create("TextButton", {
-                    Name = "\0",
-                    FontFace = Library.Font,
-                    TextSize = Library.FontSize - 2,
-                    Text = "<",
-                    TextColor3 = Library.Theme["Text"],
-                    Parent = Items["Slider"].Instance,
-                    BackgroundTransparency = 1,
-                    BorderSizePixel = 0,
-                    AnchorPoint = Vector2.new(0, 1),
-                    Position = UDim2.new(0, 0, 1, 0), -- Left end of the slider bar
-                    Size = UDim2.new(0, 10, 0, 9),
-                    TextXAlignment = Enum.TextXAlignment.Center
-                }):AddToTheme({TextColor3 = 'Text'})
-
-                local IncBtn = Library:Create("TextButton", {
-                    Name = "\0",
-                    FontFace = Library.Font,
-                    TextSize = Library.FontSize - 2,
-                    Text = ">",
-                    TextColor3 = Library.Theme["Text"],
-                    Parent = Items["Slider"].Instance,
-                    BackgroundTransparency = 1,
-                    BorderSizePixel = 0,
-                    AnchorPoint = Vector2.new(1, 1),
-                    Position = UDim2.new(1, 0, 1, 0), -- Right end of the slider bar
-                    Size = UDim2.new(0, 10, 0, 9),
-                    TextXAlignment = Enum.TextXAlignment.Center
-                }):AddToTheme({TextColor3 = 'Text'})
-
-                DecBtn.Instance.MouseButton1Down:Connect(function()
-                    local step = 10 ^ -(Slider.Decimals or 0)
-                    Slider:Set(Slider.Value - step)
-                end)
-
-                IncBtn.Instance.MouseButton1Down:Connect(function()
-                    local step = 10 ^ -(Slider.Decimals or 0)
-                    Slider:Set(Slider.Value + step)
-                end)
 
                 Slider.Items = Items 
             end
