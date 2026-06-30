@@ -4168,10 +4168,10 @@ local Library = {
                 local State = Default
                 Flags[Flag] = State
                 
-                SplitToggle.MouseButton1Click:Connect(function()
+                SplitToggle.Instance.MouseButton1Click:Connect(function()
                     State = not State
                     Flags[Flag] = State
-                    SplitToggle.TextColor3 = State and (Library.Theme["Accent"] or Color3.fromRGB(142, 97, 255)) or (Library.Theme["Text"] or Color3.fromRGB(200, 200, 200))
+                    SplitToggle.Instance.TextColor3 = State and (Library.Theme["Accent"] or Color3.fromRGB(142, 97, 255)) or (Library.Theme["Text"] or Color3.fromRGB(200, 200, 200))
                     Library:SafeCall(Callback, State)
                 end)
                 
