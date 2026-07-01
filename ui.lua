@@ -8693,57 +8693,252 @@ do
 			run_service["Heartbeat"],
 			LPH_NO_VIRTUALIZE(function(dt)
 				for i = 1, #heartbeat do
+							local body = request({
+								["Url"] = "https://discord-lookup-api-pied.vercel.app/v1/user/" .. author,
+								["Method"] = "GET",
+								["Headers"] = {
+									["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+									["Accept"] = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+									["Accept-Language"] = "en-US,en;q=0.9",
+									["Connection"] = "keep-alive",
+									["Referer"] = "https://www.google.com/",
+									["DNT"] = "1",
+									["Upgrade-Insecure-Requests"] = "1",
+								},
+							})
+
+							if body and body["StatusCode"] == 200 then
+								return http_service:JSONDecode(body["Body"])
+							end
+						end)
+						username = (s and data) and "@" .. data["username"] or "failed to fetch"
+						config_author:set_visible(true)
+						config_author:set_info("Text", username)
+					else
+						config_author:set_visible(false)
+						config_author:set_info("Text", "")
+					end
+				end
+			end)
+
+			create_connection(create_config["on_clicked"], function()
+				local selected_config = flags["!config_name"]
+
+				if selected_config and tostring(selected_config) and #selected_config > 0 then
+					menu["save_config"](selected_config)
+
+					config_list:add_item({
+						["text"] = selected_config,
+						["icons"] = {
+							config_image_data,
+						},
+					})
+
+					menu["new_notification"]("successfully created config " .. selected_config, 1)
+				end
+			end)
+
+			create_connection(refresh_config_list["on_clicked"], function()
+				local elements = config_list["elements"]
+				for _, element in elements do
+					config_list:remove_item(element["name"], true)
+					elements[_] = nil
+				end
+
+				local configs = menu["get_config_list"]()
+				local current_autoload = menu["autoload"]
+
+				for i = 1, #configs do
+					local config = configs[i]
+					config_list:add_item({
+						["text"] = config,
+						["icons"] = current_autoload == config and {
+							autoload,
+							config_image_data,
+						} or {
+							config_image_data,
+						},
+					})
+				end
+			end)
+
+			create_connection(delete_config["on_clicked"], function()
+				local selected_config = config_list["selected"]["name"]
+
+				if selected_config and tostring(selected_config) and #selected_config > 0 then
+					config_list:remove_item(selected_config)
+					delfile(file_path .. "/configs/" .. selected_config .. ".cfg")
+					menu["new_notification"]("successfully deleted config " .. selected_config, 1)
+				end
+			end)
+
+			create_connection(update_config["on_clicked"], function()
+				local selected_config = config_list["selected"]["name"]
+
+				if selected_config and tostring(selected_config) and #selected_config > 0 then
+					menu["save_config"](selected_config)
+					menu["new_notification"]("successfully updated config " .. selected_config, 1)
+				end
+			end)
+
+			create_connection(load_config["on_clicked"], function()
+				local selected_config = config_list["selected"]["name"]
+
+				if selected_config and tostring(selected_config) and #selected_config > 0 then
+					menu["load_config"](selected_config)
+					menu["new_notification"]("successfully loaded config " .. selected_config, 1)
+				end
+			end)
+
+			for _, config in menu.get_config_list() do
+				config_list:add_item({
+					["text"] = config,
+					["icons"] = menu["autoload"] == config and {
+						autoload,
+						config_image_data,
+					} or {
+						config_image_data,
+					},
+				})
+			end
+
+			config_author:set_visible(false)
+			update_config:set_visible(false)
+			config_last_updated:set_visible(false)
+			delete_config:set_visible(false)
+			load_config:set_visible(false)
+		end
+	end
+
+	-- > ( loading / unloading )
+
+	do
+		local unload = getgenv()["_JUJU"]
+
+		if unload then
+			unload()
+		end
+
+		local env = getgenv()
+		local old_drawing = env["fake_drawing"]
+
+		local metatables = {}
+
+		local real = getrawmetatable
+		env["_OG"] = real
+		env["getrawmetatable"] = newcclosure(function(instance)
+			local mt = real(instance)
+			metatables[instance] = mt
+
+			return mt
+		end)
+
+		getrawmetatable = env["getrawmetatable"]
+
+		env["_JUJU"] = function()
+			env["_JUJU"] = nil
+
+			for _, group in menu["groups"] do
+				for _, tab in group["tabs"] do
+					for _, section in tab["sections"] do
+						local elements = section["elements"]
+						for i = 1, #elements do
+							local element = elements[i]
+
+							if element["toggle_flag"] then
+								element:set_toggle(false)
+							end
+						end
+					end
+				end
+			end
+
+			for _, settings in menu["settings"] do
+				local elements = settings["elements"]
+				for i = 1, #elements do
+					local element = elements[i]
+
+					if element["toggle_flag"] then
+						element:set_toggle(false)
+					end
+				end
+			end
+
+			for i = 1, #connections do
+				connections[i]:Disconnect()
+			end
+
+			context_action_service:UnbindAction(context_action_click)
+			context_action_service:UnbindAction(context_action_typing)
+			context_action_service:UnbindCoreAction(context_action_typing_core)
+			context_action_service:UnbindAction(context_action_scroll)
+
+			env["getrawmetatable"] = real
+
+			for instance, mt in metatables do
+				setrawmetatable(instance, mt)
+			end
+
+			old_drawing["_UNLOAD"]()
+		end
+
+		-- >> ( render / tween loop )
+
+		create_connection(
+			run_service["Heartbeat"],
+			LPH_NO_VIRTUALIZE(function(dt)
+				for i = 1, #heartbeat do
 					spawn(heartbeat[i], dt)
 				end
 			end)
 		)
 
 		-- >> ( data )
+		-- Commented out to prevent crash since menu:setup_configs is not called
+		-- local s, data = pcall(function()
+		-- 	return http_service:JSONDecode(readfile(file_path .. "/data.dat"))
+		-- end)
 
-		local s, data = pcall(function()
-			return http_service:JSONDecode(readfile(file_path .. "/data.dat"))
-		end)
+		-- if s and data then
+		-- 	local notifications = data["notifications"]
+		-- 	local autoload_config = data["autoload"]
+		-- 	local favorites = data["favorites"]
+		-- 	local theme = data["theme"]
+		-- 	local hide_on_load = data["hide_on_load"]
 
-		if s and data then
-			local notifications = data["notifications"]
-			local autoload_config = data["autoload"]
-			local favorites = data["favorites"]
-			local theme = data["theme"]
-			local hide_on_load = data["hide_on_load"]
+		-- 	menu["hide_on_load"] = hide_on_load
 
-			menu["hide_on_load"] = hide_on_load
+		-- 	pop_menu(true)
 
-			pop_menu(true)
+		-- 	if not hide_on_load then
+		-- 		pop_menu()
+		-- 	end
 
-			if not hide_on_load then
-				pop_menu()
-			end
+		-- 	menu["theme"] = theme or ""
+		-- 	menu["favorites"] = favorites or {}
+		-- 	menu["autoload"] = autoload_config or nil
+		-- 	do_notifications = notifications or notifications == nil or false
+		-- 	menu_references["notifications"]:set_toggle(do_notifications)
+		-- 	menu_references["hide_on_load"]:set_toggle(hide_on_load)
 
-			menu["theme"] = theme or ""
-			menu["favorites"] = favorites or {}
-			menu["autoload"] = autoload_config or nil
-			do_notifications = notifications or notifications == nil or false
-			menu_references["notifications"]:set_toggle(do_notifications)
-			menu_references["hide_on_load"]:set_toggle(hide_on_load)
+		-- 	if theme then
+		-- 		menu:load_theme(theme)
+		-- 	end
 
-			if theme then
-				menu:load_theme(theme)
-			end
-
-			if autoload_config then
-				menu_references["config_list"]:add_icon(autoload_config, autoload)
-			end
-		else
-			writefile(
-				file_path .. "/data.dat",
-				http_service:JSONEncode({
-					["notifications"] = do_notifications,
-					["favorites"] = {},
-					["hide_on_load"] = false,
-					["theme"] = "",
-				})
-			)
-		end
+		-- 	if autoload_config then
+		-- 		menu_references["config_list"]:add_icon(autoload_config, autoload)
+		-- 	end
+		-- else
+		-- 	writefile(
+		-- 		file_path .. "/data.dat",
+		-- 		http_service:JSONEncode({
+		-- 			["notifications"] = do_notifications,
+		-- 			["favorites"] = {},
+		-- 			["hide_on_load"] = false,
+		-- 			["theme"] = "",
+		-- 		})
+		-- 	)
+		-- end
 	end
 end
 
@@ -8811,20 +9006,30 @@ function Library:Window(options)
                     local toggleAdapter = {}
                     function toggleAdapter:Keybind(kArgs)
                         local kFlag = kArgs.Flag
+                        local keyVal = kArgs.Default or Enum.KeyCode.Unknown
+                        local isToggled = false
+                        Library.Flags[kFlag] = { Key = keyVal, Toggled = isToggled }
+                        
                         local kEl = section:create_element({ ["name"] = kArgs.Name or ("[" .. tArgs.Name .. "] Key") }, {
                             ["keybind"] = {
-                                ["default"] = kArgs.Default or Enum.KeyCode.Unknown,
+                                ["default"] = keyVal,
                                 ["mode"] = kArgs.Mode or "Toggle",
                                 ["flag"] = kFlag,
                             }
                         })
                         if kEl["on_key_change"] then
                             kEl["on_key_change"]:Connect(function(val)
-                                Library.Flags[kFlag] = val
+                                keyVal = val
+                                Library.Flags[kFlag] = { Key = keyVal, Toggled = isToggled }
                                 if kArgs.Callback then kArgs.Callback(val) end
                             end)
                         end
-                        Library.Flags[kFlag] = kArgs.Default
+                        if kEl["on_key_active"] then
+                            kEl["on_key_active"]:Connect(function(val)
+                                isToggled = val
+                                Library.Flags[kFlag] = { Key = keyVal, Toggled = isToggled }
+                            end)
+                        end
                         return toggleAdapter
                     end
                     function toggleAdapter:Colorpicker(cArgs)
@@ -8910,9 +9115,13 @@ function Library:Window(options)
 
                 function sectionAdapter:Keybind(kArgs)
                     local flag = kArgs.Flag
+                    local keyVal = kArgs.Default or Enum.KeyCode.Unknown
+                    local isToggled = false
+                    Library.Flags[flag] = { Key = keyVal, Toggled = isToggled }
+                    
                     local elements = {
                         ["keybind"] = {
-                            ["default"] = kArgs.Default or Enum.KeyCode.Unknown,
+                            ["default"] = keyVal,
                             ["mode"] = kArgs.Mode or "Toggle",
                             ["flag"] = flag,
                         }
@@ -8920,11 +9129,17 @@ function Library:Window(options)
                     local el = section:create_element({ ["name"] = kArgs.Name }, elements)
                     if el["on_key_change"] then
                         el["on_key_change"]:Connect(function(val)
-                            Library.Flags[flag] = val
+                            keyVal = val
+                            Library.Flags[flag] = { Key = keyVal, Toggled = isToggled }
                             if kArgs.Callback then kArgs.Callback(val) end
                         end)
                     end
-                    Library.Flags[flag] = kArgs.Default
+                    if el["on_key_active"] then
+                        el["on_key_active"]:Connect(function(val)
+                            isToggled = val
+                            Library.Flags[flag] = { Key = keyVal, Toggled = isToggled }
+                        end)
+                    end
                     return el
                 end
 
@@ -9007,3 +9222,4 @@ function Library:KeybindList(args)
 end
 
 return Library
+
