@@ -8989,3 +8989,263 @@ function Library:KeybindList(args)
 end
 
 return Library
+
+-- =========================================================================
+-- Aetheris / Library API Adapter (Maps cmt.txt API to dd.txt menu)
+-- =========================================================================
+
+local Library = {
+    Flags = {},
+    MenuKeybind = tostring(Enum.KeyCode.M),
+    Directory = "juanitaaaaaaa",
+    Folders = {
+        Assets = "/Assets",
+        Configs = "/Configs",
+        Themes = "/Themes"
+    },
+    SetFlags = {},
+    OpenFrames = {},
+    TargetHUDObj = nil,
+    KeyList = nil
+}
+getgenv().Library = Library
+
+-- The menu instance is already created globally in dd.txt (menu)
+
+function Library:Window(options)
+    local windowAdapter = {}
+    
+    function windowAdapter:Page(pageArgs)
+        local pageName = pageArgs.Name or "Tab"
+        local group = menu.create_group(pageName)
+        local tab = group:create_tab(pageName)
+        
+        local pageAdapter = {}
+        
+        function pageAdapter:MultiSection(multiArgs)
+            local multiAdapter = {}
+            local sideNum = multiArgs.Side == 1 and 1 or 2
+            
+            function multiAdapter:Add(sectionName)
+                local section = group:create_section(pageName, sectionName, sideNum, 0, 0)
+                
+                local sectionAdapter = {}
+                
+                function sectionAdapter:Toggle(tArgs)
+                    local flag = tArgs.Flag
+                    local elements = {
+                        ["toggle"] = {
+                            ["default"] = tArgs.Default or false,
+                            ["flag"] = flag,
+                        }
+                    }
+                    local el = section:create_element({ ["name"] = tArgs.Name }, elements)
+                    
+                    if el["on_toggle_change"] then
+                        el["on_toggle_change"]:Connect(function(val)
+                            Library.Flags[flag] = val
+                            if tArgs.Callback then tArgs.Callback(val) end
+                        end)
+                    end
+                    Library.Flags[flag] = tArgs.Default or false
+                    Library.SetFlags[flag] = function(v) el:set_toggle(v) end
+                    
+                    local toggleAdapter = {}
+                    function toggleAdapter:Keybind(kArgs)
+                        local kFlag = kArgs.Flag
+                        local kEl = section:create_element({ ["name"] = kArgs.Name or ("[" .. tArgs.Name .. "] Key") }, {
+                            ["keybind"] = {
+                                ["default"] = kArgs.Default or Enum.KeyCode.Unknown,
+                                ["mode"] = kArgs.Mode or "Toggle",
+                                ["flag"] = kFlag,
+                            }
+                        })
+                        if kEl["on_key_change"] then
+                            kEl["on_key_change"]:Connect(function(val)
+                                Library.Flags[kFlag] = val
+                                if kArgs.Callback then kArgs.Callback(val) end
+                            end)
+                        end
+                        Library.Flags[kFlag] = kArgs.Default
+                        return toggleAdapter
+                    end
+                    function toggleAdapter:Colorpicker(cArgs)
+                        local cFlag = cArgs.Flag
+                        local cEl = section:create_element({ ["name"] = cArgs.Name or ("[" .. tArgs.Name .. "] Color") }, {
+                            ["colorpicker"] = {
+                                ["default_color"] = cArgs.Default,
+                                ["color_flag"] = cFlag,
+                            }
+                        })
+                        if cEl["on_colorpicker_change"] then
+                            cEl["on_colorpicker_change"]:Connect(function(val)
+                                Library.Flags[cFlag] = val
+                                if cArgs.Callback then cArgs.Callback(val) end
+                            end)
+                        end
+                        Library.Flags[cFlag] = cArgs.Default
+                        return toggleAdapter
+                    end
+                    function toggleAdapter:SetVisibility(visible) end
+                    function toggleAdapter:SetText(txt) end
+                    function toggleAdapter:Set(val) el:set_toggle(val) end
+                    return toggleAdapter
+                end
+
+                function sectionAdapter:Slider(sArgs)
+                    local flag = sArgs.Flag
+                    local defaultVal = sArgs.Default or sArgs.Min
+                    local elements = {
+                        ["slider"] = {
+                            ["default"] = defaultVal,
+                            ["flag"] = flag,
+                            ["min"] = sArgs.Min,
+                            ["max"] = sArgs.Max,
+                            ["decimals"] = sArgs.Decimals or 0,
+                            ["suffix"] = sArgs.Suffix or "",
+                        }
+                    }
+                    local el = section:create_element({ ["name"] = sArgs.Name }, elements)
+                    
+                    if el["on_slider_change"] then
+                        el["on_slider_change"]:Connect(function(val)
+                            Library.Flags[flag] = val
+                            if sArgs.Callback then sArgs.Callback(val) end
+                        end)
+                    end
+                    Library.Flags[flag] = defaultVal
+                    Library.SetFlags[flag] = function(v) el:set_slider(v) end
+                    
+                    local sliderAdapter = {}
+                    function sliderAdapter:SetVisibility(v) end
+                    function sliderAdapter:Set(v) el:set_slider(v) end
+                    return sliderAdapter
+                end
+
+                function sectionAdapter:Dropdown(dArgs)
+                    local flag = dArgs.Flag
+                    local elements = {
+                        ["dropdown"] = {
+                            ["default"] = dArgs.Default,
+                            ["flag"] = flag,
+                            ["options"] = dArgs.Items,
+                            ["multi"] = dArgs.Multi,
+                        }
+                    }
+                    local el = section:create_element({ ["name"] = dArgs.Name }, elements)
+                    
+                    if el["on_dropdown_change"] then
+                        el["on_dropdown_change"]:Connect(function(val)
+                            Library.Flags[flag] = val
+                            if dArgs.Callback then dArgs.Callback(val) end
+                        end)
+                    end
+                    Library.Flags[flag] = dArgs.Default
+                    Library.SetFlags[flag] = function(v) el:set_dropdown(v) end
+                    
+                    local ddAdapter = {}
+                    function ddAdapter:SetVisibility(v) end
+                    function ddAdapter:Set(v) el:set_dropdown(v) end
+                    function ddAdapter:Refresh(items) el:set_options(items) end
+                    return ddAdapter
+                end
+
+                function sectionAdapter:Keybind(kArgs)
+                    local flag = kArgs.Flag
+                    local elements = {
+                        ["keybind"] = {
+                            ["default"] = kArgs.Default or Enum.KeyCode.Unknown,
+                            ["mode"] = kArgs.Mode or "Toggle",
+                            ["flag"] = flag,
+                        }
+                    }
+                    local el = section:create_element({ ["name"] = kArgs.Name }, elements)
+                    if el["on_key_change"] then
+                        el["on_key_change"]:Connect(function(val)
+                            Library.Flags[flag] = val
+                            if kArgs.Callback then kArgs.Callback(val) end
+                        end)
+                    end
+                    Library.Flags[flag] = kArgs.Default
+                    return el
+                end
+
+                function sectionAdapter:Colorpicker(cArgs)
+                    local flag = cArgs.Flag
+                    local elements = {
+                        ["colorpicker"] = {
+                            ["default_color"] = cArgs.Default,
+                            ["color_flag"] = flag,
+                        }
+                    }
+                    local el = section:create_element({ ["name"] = cArgs.Name }, elements)
+                    if el["on_colorpicker_change"] then
+                        el["on_colorpicker_change"]:Connect(function(val)
+                            Library.Flags[flag] = val
+                            if cArgs.Callback then cArgs.Callback(val) end
+                        end)
+                    end
+                    Library.Flags[flag] = cArgs.Default
+                    return el
+                end
+
+                function sectionAdapter:Button(bArgs)
+                    local elements = {
+                        ["button"] = {
+                            ["callback"] = bArgs.Callback
+                        }
+                    }
+                    local el = section:create_element({ ["name"] = bArgs.Name }, elements)
+                    return el
+                end
+
+                function sectionAdapter:Label(textArgs)
+                    local name = type(textArgs) == "table" and textArgs.Name or textArgs
+                    local el = section:create_element({ ["name"] = name }, {})
+                    
+                    local labelAdapter = {}
+                    function labelAdapter:Colorpicker(cArgs)
+                        local cFlag = cArgs.Flag
+                        local cEl = section:create_element({ ["name"] = cArgs.Name or ("[" .. name .. "] Color") }, {
+                            ["colorpicker"] = {
+                                ["default_color"] = cArgs.Default,
+                                ["color_flag"] = cFlag,
+                            }
+                        })
+                        if cEl["on_colorpicker_change"] then
+                            cEl["on_colorpicker_change"]:Connect(function(val)
+                                Library.Flags[cFlag] = val
+                                if cArgs.Callback then cArgs.Callback(val) end
+                            end)
+                        end
+                        Library.Flags[cFlag] = cArgs.Default
+                        return labelAdapter
+                    end
+                    return labelAdapter
+                end
+                
+                return sectionAdapter
+            end
+            return multiAdapter
+        end
+        return pageAdapter
+    end
+    
+    return windowAdapter
+end
+
+function Library:Watermark(args) end
+
+function Library:TargetHUD(args)
+    local hud = {}
+    function hud:SetTarget(tgt) end
+    function hud:SetVisibility(v) end
+    Library.TargetHUDObj = hud
+    return hud
+end
+
+function Library:KeybindList(args)
+    if menu.show_keybinds then menu:show_keybinds() end
+end
+
+return Library
